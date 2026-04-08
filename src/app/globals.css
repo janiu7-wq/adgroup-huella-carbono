@@ -1,0 +1,470 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════
+   ADGROUP Atmospheric Auditor - Design System
+   Basado en prototipo Stitch "The Atmospheric Auditor"
+   Colores: Forest Green Primary + Trust Blue Secondary
+   ══════════════════════════════════════════════ */
+
+:root {
+  /* Paleta primaria - Forest Green */
+  --primary: #003527;
+  --primary-container: #064e3b;
+  --primary-fixed: #b0f0d6;
+  --primary-fixed-dim: #95d3ba;
+  --on-primary: #ffffff;
+  --on-primary-container: #80bea6;
+
+  /* Paleta secundaria - Trust Blue */
+  --secondary: #4059aa;
+  --secondary-container: #8fa7fe;
+  --on-secondary: #ffffff;
+  --on-secondary-container: #1d3989;
+
+  /* Paleta terciaria - HuellaChile Gold/Silver/Bronze */
+  --tertiary: #735c00;
+  --tertiary-container: #cca72f;
+  --tertiary-fixed: #ffe088;
+  --tertiary-fixed-dim: #e9c349;
+  --on-tertiary: #ffffff;
+
+  /* Superficies */
+  --background: #f8f9fb;
+  --surface: #f8f9fb;
+  --surface-bright: #f8f9fb;
+  --surface-container: #edeef0;
+  --surface-container-low: #f3f4f6;
+  --surface-container-high: #e7e8ea;
+  --surface-container-highest: #e1e2e4;
+  --surface-container-lowest: #ffffff;
+  --surface-dim: #d9dadc;
+
+  /* Texto */
+  --on-surface: #191c1e;
+  --on-surface-variant: #404944;
+  --on-background: #191c1e;
+
+  /* Error */
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+
+  /* Outline */
+  --outline: #707974;
+  --outline-variant: #bfc9c3;
+
+  /* Tipografía */
+  --font-display: 'Manrope', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+[data-theme="dark"] {
+  /* Primaria: adaptada para contraste en fondos oscuros */
+  --primary: #95d3ba;
+  --primary-container: #00875e;
+  --primary-fixed: #064e3b;
+  --primary-fixed-dim: #003527;
+  --on-primary: #003829;
+  --on-primary-container: #b0f0d6;
+
+  /* Secundaria */
+  --secondary: #b3c5ff;
+  --secondary-container: #4059aa;
+  --on-secondary: #1a2a6b;
+  --on-secondary-container: #d9e2ff;
+
+  /* Superficies modo oscuro */
+  --background: #191c1e;
+  --surface: #191c1e;
+  --surface-bright: #2d3133;
+  --surface-container: #1d2022;
+  --surface-container-low: #191c1e;
+  --surface-container-high: #272a2c;
+  --surface-container-highest: #323537;
+  --surface-container-lowest: #0e1112;
+  --surface-dim: #111415;
+
+  /* Texto modo oscuro */
+  --on-surface: #e1e2e4;
+  --on-surface-variant: #bfc9c3;
+  --on-background: #e1e2e4;
+
+  /* Outline modo oscuro */
+  --outline: #89938e;
+  --outline-variant: #404944;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--background);
+  color: var(--on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Headings con Manrope ── */
+h1, h2, h3, h4, h5, h6,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ── Glassmorphism (sidebar/modal) ── */
+.glass {
+  background: rgba(var(--surface-rgb, 248, 249, 251), 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .glass {
+  background: rgba(25, 28, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ── Gradiente CTA Primary ── */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  background-size: 200% auto;
+  animation: shineGradient 4s linear infinite;
+}
+
+/* ── Cards sin bordes (The No-Line Rule) ── */
+.card {
+  background: var(--surface-container-lowest);
+  border-radius: 1rem;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.card-elevated {
+  background: var(--surface-container-lowest);
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0,0,0,0.02);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-theme="dark"] .card-elevated {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+.card-elevated:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .card-elevated:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Sidebar Navigation ── */
+.sidebar-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.sidebar-nav-item:hover {
+  background: var(--surface-container);
+  color: var(--on-surface);
+  transform: translateX(4px);
+}
+
+.sidebar-nav-item.active {
+  background: var(--primary-fixed);
+  color: var(--primary-container);
+  font-weight: 600;
+}
+
+.sidebar-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background: var(--primary-container);
+  border-radius: 0 4px 4px 0;
+}
+
+/* ── KPI Metric Display ── */
+.metric-display {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--primary);
+}
+
+.metric-unit {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Sellos HuellaChile ── */
+.sello-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.sello-cuantificacion {
+  background: var(--primary-fixed);
+  color: var(--primary-container);
+}
+
+.sello-reduccion {
+  background: rgba(64, 89, 170, 0.12);
+  color: var(--secondary);
+}
+
+.sello-excelencia {
+  background: var(--tertiary-fixed);
+  color: var(--tertiary);
+}
+
+.sello-neutralizacion {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* ── Tablas sin bordes (Audit-Ready) ── */
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.audit-table th {
+  background: var(--surface-container-low);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-variant);
+}
+
+.audit-table td {
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  color: var(--on-surface);
+  vertical-align: middle;
+}
+
+.audit-table tbody tr:nth-child(even) td {
+  background: var(--surface-container-lowest);
+}
+
+.audit-table tbody tr:hover td {
+  background: var(--primary-fixed);
+  cursor: pointer;
+}
+
+/* ── Inputs ── */
+.input-field {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: var(--surface-container-lowest);
+  border: 1.5px solid var(--outline-variant);
+  border-radius: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--on-surface);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: var(--primary-container);
+  box-shadow: 0 0 0 3px rgba(6, 78, 59, 0.12);
+}
+
+.input-field::placeholder {
+  color: var(--outline);
+}
+
+/* ── Botones ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.75rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 50%, var(--primary) 100%);
+  background-size: 200% auto;
+  color: var(--on-primary);
+  border: none;
+  border-radius: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: all 0.5s ease-in-out;
+}
+
+.btn-primary:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 53, 39, 0.25);
+}
+
+.btn-primary:hover::after {
+  left: 100%;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  border: none;
+  border-radius: 0.375rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  background: transparent;
+  color: var(--primary);
+  border: none;
+  border-radius: 0.375rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--primary-fixed);
+}
+
+/* ── Alcance Pills ── */
+.alcance-pill-1 {
+  background: rgba(0, 53, 39, 0.1);
+  color: var(--primary);
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.alcance-pill-2 {
+  background: rgba(64, 89, 170, 0.1);
+  color: var(--secondary);
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.alcance-pill-3 {
+  background: rgba(115, 92, 0, 0.1);
+  color: var(--tertiary);
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ── Animaciones ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shineGradient {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease infinite;
+}
+
+/* Stagger animation delays */
+.delay-100 { animation-delay: 0.1s; opacity: 0; }
+.delay-200 { animation-delay: 0.2s; opacity: 0; }
+.delay-300 { animation-delay: 0.3s; opacity: 0; }
+.delay-400 { animation-delay: 0.4s; opacity: 0; }
+
+/* ── Scroll ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--outline-variant); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--outline); }
