@@ -25,11 +25,11 @@ export default function EmpresasPage() {
     try {
       const respEmpresas = await getDocs(collection(db, 'empresas'));
       const listE = respEmpresas.docs.map(d => ({ id: d.id, ...d.data() } as Empresa));
-      if (listE.length > 0) setEmpresasDB(listE);
+      setEmpresasDB(listE);
 
       const respDatos = await getDocs(collection(db, 'datos_actividad'));
       const listD = respDatos.docs.map(d => ({ id: d.id, ...d.data() } as DatoActividad));
-      if (listD.length > 0) setDatosDB(listD);
+      setDatosDB(listD);
     } catch (e) {
       console.warn("Firestore offline - Fallback demo (Empresas)", e);
     } finally {

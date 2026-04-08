@@ -36,9 +36,7 @@ export default function ReportesPage() {
       try {
         const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
         const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
-        if (dbData.length > 0) {
-          setDatosDB(dbData);
-        }
+        setDatosDB(dbData);
       } catch (e) {
         console.warn("Firestore no configurado. Usando demo local.", e);
       } finally {

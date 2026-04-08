@@ -70,11 +70,7 @@ export default function DatosActividadPage() {
     try {
       const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
       const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
-      if (dbData.length > 0) {
-        setDatos(dbData);
-      } else {
-        setDatos(DATOS_ACTIVIDAD_DEMO);
-      }
+      setDatos(dbData);
     } catch (e) {
       console.warn("Firestore no configurado. Usando demo local.", e);
       setDatos(DATOS_ACTIVIDAD_DEMO);

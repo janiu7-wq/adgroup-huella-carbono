@@ -36,7 +36,7 @@ export default function DashboardPage() {
       try {
         const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
         const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
-        if (dbData.length > 0) setDatosDB(dbData);
+        setDatosDB(dbData);
       } catch (e) {
         console.warn('Firestore fallback dashboard datos_actividad', e);
       }

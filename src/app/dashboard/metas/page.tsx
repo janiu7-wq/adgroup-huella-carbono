@@ -147,12 +147,7 @@ export default function MetasPage() {
       const querySnapshot = await getDocs(collection(db, 'metas'));
       const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MetaEjecutiva));
       
-      if (data.length > 0) {
-        setMetasDB(data);
-      } else {
-        // Fallback a demo si la DB está vacía
-        setMetasDB(METAS_RETAIL_DEMO);
-      }
+      setMetasDB(data);
     } catch (e) {
       console.warn("Firestore no configurado o sin permisos. Usando datos Demo local.", e);
       setMetasDB(METAS_RETAIL_DEMO);
