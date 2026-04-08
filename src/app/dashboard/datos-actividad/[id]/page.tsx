@@ -35,7 +35,7 @@ export default function DatoDetallePage({ params }: { params: Promise<{ id: stri
           Auditoría de Emisión
         </h1>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem', color: 'var(--on-surface-variant)' }}>
-          ID Rastreo Blockchain Demostrativo: <span style={{ fontFamily: 'monospace', fontWeight: 600, background: 'var(--surface-container-high)', padding: '2px 6px', borderRadius: '4px' }}>{dato.id.toUpperCase()}</span>
+          ID Rastreo Blockchain Demostrativo: <span style={{ fontFamily: 'monospace', fontWeight: 600, background: 'var(--surface-container-high)', padding: '2px 6px', borderRadius: '4px' }}>{(dato.id || 'N/A').toUpperCase()}</span>
         </p>
       </div>
 
