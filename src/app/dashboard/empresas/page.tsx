@@ -16,8 +16,8 @@ export default function EmpresasPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [form, setForm] = useState({ razonSocial: '', rut: '', rubro: '', instalaciones: 1, adminEmail: '', ventanillaUnica: '' });
 
-  const [empresasDB, setEmpresasDB] = useState<Empresa[]>(EMPRESAS_DEMO);
-  const [datosDB, setDatosDB] = useState<DatoActividad[]>(DATOS_ACTIVIDAD_DEMO);
+  const [empresasDB, setEmpresasDB] = useState<Empresa[]>([]);
+  const [datosDB, setDatosDB] = useState<DatoActividad[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch Firestore

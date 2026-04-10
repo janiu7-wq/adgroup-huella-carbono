@@ -28,7 +28,7 @@ export default function ReportesPage() {
   
   const [generando, setGenerando] = useState<'pdf' | 'excel' | 'pkg' | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [datosDB, setDatosDB] = useState<DatoActividad[]>(DATOS_ACTIVIDAD_DEMO);
+  const [datosDB, setDatosDB] = useState<DatoActividad[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

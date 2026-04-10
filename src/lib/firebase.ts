@@ -22,7 +22,6 @@ export const googleProvider = new GoogleAuthProvider();
 
 googleProvider.setCustomParameters({
   prompt: 'select_account',
-  hd: 'adgroup.cl', // Restringe a dominio corporativo (opcional)
 });
 
 export default app;

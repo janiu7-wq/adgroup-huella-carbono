@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { DatoActividad } from '@/lib/types';
+import type { DatoActividad, Empresa } from '@/lib/types';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -29,7 +29,8 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 export default function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('2024');
   const { lang, setLang, t } = useLanguage();
-  const [datosDB, setDatosDB] = useState<DatoActividad[]>(DATOS_ACTIVIDAD_DEMO);
+  const [datosDB, setDatosDB] = useState<DatoActividad[]>([]);
+  const [empresasDB, setEmpresasDB] = useState<Empresa[]>([]);
   
   useEffect(() => {
     const fetchDatos = async () => {
@@ -37,6 +38,10 @@ export default function DashboardPage() {
         const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
         const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
         setDatosDB(dbData);
+        
+        const respEmpresas = await getDocs(collection(db, 'empresas'));
+        const listE = respEmpresas.docs.map(d => ({ id: d.id, ...d.data() } as Empresa));
+        setEmpresasDB(listE);
       } catch (e) {
         console.warn('Firestore fallback dashboard datos_actividad', e);
       }
@@ -44,7 +49,7 @@ export default function DashboardPage() {
     fetchDatos();
   }, []);
 
-  const EMPRESA_RANKING = EMPRESAS_DEMO.map(e => {
+  const EMPRESA_RANKING = empresasDB.map(e => {
     const datosE = datosDB.filter(d => d.empresaId === e.id);
     const tot = datosE.reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
     return { name: e.razonSocial.split(' ')[0], total: parseFloat(tot.toFixed(1)), full: e.razonSocial, id: e.id };
@@ -56,14 +61,14 @@ export default function DashboardPage() {
   const alcance3 = datosDB.filter(d => d.alcance === 3).reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
 
   const HOLDING_KPIS = {
-    totalEmisiones: totalEmisiones > 0 ? totalEmisiones : 3279.1,
-    alcance1: alcance1 > 0 ? alcance1 : 2104.3,
-    alcance2: alcance2 > 0 ? alcance2 : 856.2,
-    alcance3: alcance3 > 0 ? alcance3 : 318.6,
-    reduccion: 14.2,
-    empresas: EMPRESA_RANKING.filter(e => e.total > 0).length || 12,
-    sellos: 24,
-    auditReadiness: 98.4,
+    totalEmisiones: totalEmisiones > 0 ? totalEmisiones : 0,
+    alcance1: alcance1 > 0 ? alcance1 : 0,
+    alcance2: alcance2 > 0 ? alcance2 : 0,
+    alcance3: alcance3 > 0 ? alcance3 : 0,
+    reduccion: totalEmisiones > 0 ? 14.2 : 0,
+    empresas: EMPRESA_RANKING.filter(e => e.total > 0).length || 0,
+    sellos: totalEmisiones > 0 ? 24 : 0,
+    auditReadiness: totalEmisiones > 0 ? 98.4 : 0,
   };
 
   const sello = getSelloHuellaChile(HOLDING_KPIS.reduccion);
@@ -210,7 +215,7 @@ export default function DashboardPage() {
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--on-surface-variant)' }}>{s.name}</span>
                 </div>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--on-surface)' }}>
-                  {((s.value / HOLDING_KPIS.totalEmisiones) * 100).toFixed(0)}%
+                  {HOLDING_KPIS.totalEmisiones > 0 ? ((s.value / HOLDING_KPIS.totalEmisiones) * 100).toFixed(0) : 0}%
                 </span>
               </div>
             ))}
@@ -297,7 +302,7 @@ export default function DashboardPage() {
       {/* ── Accesos Rápidos ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
         {[
-          { href: '/dashboard/empresas', label: t('Ver Empresas', 'View Companies'), desc: t(`${EMPRESAS_DEMO.length} razones sociales`, `${EMPRESAS_DEMO.length} business units`), icon: '🏢' },
+          { href: '/dashboard/empresas', label: t('Ver Empresas', 'View Companies'), desc: t(`${empresasDB.length} razones sociales`, `${empresasDB.length} business units`), icon: '🏢' },
           { href: '/dashboard/datos-actividad', label: t('Fuentes de Emisión', 'Emission Sources'), desc: t('Agregar mediciones', 'Add activity data'), icon: '📊' },
           { href: '/dashboard/reportes', label: t('Generar Reporte', 'Generate Report'), desc: t('PDF · Excel · HuellaChile', 'PDF · Excel · Audit Backup'), icon: '📄' },
         ].map(a => (
