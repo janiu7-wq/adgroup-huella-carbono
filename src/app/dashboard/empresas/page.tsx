@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Empresa, DatoActividad } from '@/lib/types';
 import { EMPRESAS_DEMO, DATOS_ACTIVIDAD_DEMO } from '@/lib/demo-data';
@@ -15,6 +15,8 @@ export default function EmpresasPage() {
   const [success, setSuccess] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [form, setForm] = useState({ razonSocial: '', rut: '', rubro: '', instalaciones: 1, adminEmail: '', ventanillaUnica: '' });
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [menuAbierto, setMenuAbierto] = useState<string | null>(null);
 
   const [empresasDB, setEmpresasDB] = useState<Empresa[]>([]);
   const [datosDB, setDatosDB] = useState<DatoActividad[]>([]);
@@ -69,10 +71,16 @@ export default function EmpresasPage() {
         updatedAt: new Date().toISOString()
       };
 
-      await addDoc(collection(db, 'empresas'), payload);
+      if (editandoId) {
+        await updateDoc(doc(db, 'empresas', editandoId), payload);
+      } else {
+        await addDoc(collection(db, 'empresas'), payload);
+      }
+      
       await fetchAll();
       setSuccess(true);
       setShowForm(false);
+      setEditandoId(null);
       setLogoFile(null);
       setForm({ razonSocial: '', rut: '', rubro: '', instalaciones: 1, adminEmail: '', ventanillaUnica: '' });
       setTimeout(() => setSuccess(false), 3000);
@@ -82,6 +90,34 @@ export default function EmpresasPage() {
     } finally {
       setGuardando(false);
     }
+  };
+
+  const handleEditar = (empresa: Empresa, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setForm({
+      razonSocial: empresa.razonSocial,
+      rut: empresa.rut,
+      rubro: empresa.rubro,
+      instalaciones: empresa.instalaciones?.length || 1,
+      adminEmail: empresa.responsables?.[0]?.email || '',
+      ventanillaUnica: empresa.ventanillaUnica || ''
+    });
+    setEditandoId(empresa.id);
+    setShowForm(true);
+    setMenuAbierto(null);
+  };
+
+  const handleEliminar = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(t('¿Estás seguro de eliminar esta empresa? Esta acción no se puede deshacer.', 'Are you sure you want to delete this company? This cannot be undone.'))) return;
+    try {
+      await deleteDoc(doc(db, 'empresas', id));
+      await fetchAll();
+    } catch (error) {
+      console.error("Error al eliminar empresa:", error);
+      alert(t("Error al eliminar empresa.", "Error deleting company."));
+    }
+    setMenuAbierto(null);
   };
 
   const empresasFiltradas = empresasDB.filter(e =>
@@ -110,7 +146,7 @@ export default function EmpresasPage() {
             {empresasDB.length} {t('razones sociales', 'business units')} · {t('Período de reporte 2024', 'Reporting period 2024')}
           </p>
         </div>
-        <button id="btn-nueva-empresa" onClick={() => setShowForm(true)} className="btn-primary">
+        <button id="btn-nueva-empresa" onClick={() => { setEditandoId(null); setForm({ razonSocial: '', rut: '', rubro: '', instalaciones: 1, adminEmail: '', ventanillaUnica: '' }); setShowForm(true); }} className="btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           {t('Nueva Empresa', 'New Company')}
         </button>
@@ -119,7 +155,7 @@ export default function EmpresasPage() {
       {success && (
         <div style={{ background: 'var(--primary-fixed)', borderRadius: '0.75rem', padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-container)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-container)' }}>{t('Empresa dada de alta exitosamente en el portafolio.', 'Company successfully registered in the portfolio.')}</p>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-container)' }}>{t('Operación exitosa en el portafolio.', 'Successful operation in the portfolio.')}</p>
         </div>
       )}
 
@@ -129,8 +165,8 @@ export default function EmpresasPage() {
           <div style={{ background: 'var(--surface)', borderRadius: '1.25rem', width: '100%', maxWidth: '500px', padding: '2rem', animation: 'fadeIn 0.2s ease' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--on-surface)' }}>{t('Nueva Empresa', 'New Company')}</h2>
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface-variant)', marginTop: '2px' }}>{t('Añadir filial al Portafolio ADGROUP.', 'Add subsidiary to ADGROUP Portfolio.')}</p>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--on-surface)' }}>{editandoId ? t('Editar Empresa', 'Edit Company') : t('Nueva Empresa', 'New Company')}</h2>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface-variant)', marginTop: '2px' }}>{editandoId ? t('Modificar datos filial.', 'Modify subsidiary data.') : t('Añadir filial al Portafolio ADGROUP.', 'Add subsidiary to ADGROUP Portfolio.')}</p>
               </div>
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)', padding: '8px' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -182,7 +218,7 @@ export default function EmpresasPage() {
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowForm(false)} className="btn-ghost" style={{ flex: 1 }}>{t('Cancelar', 'Cancel')}</button>
                 <button type="submit" disabled={guardando} className="btn-primary" style={{ flex: 2, justifyContent: 'center', opacity: guardando ? 0.6 : 1 }}>
-                  {guardando ? t('Registrando...', 'Registering...') : t('Registrar Empresa', 'Register Company')}
+                  {guardando ? t('Guardando...', 'Saving...') : (editandoId ? t('Actualizar Empresa', 'Update Company') : t('Registrar Empresa', 'Register Company'))}
                 </button>
               </div>
             </form>
@@ -246,9 +282,21 @@ export default function EmpresasPage() {
                     </p>
                   </div>
                 </div>
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.6875rem', background: 'var(--primary-fixed)', color: 'var(--primary-container)', padding: '3px 8px', borderRadius: '999px', fontWeight: 700 }}>
-                  {empresa.instalaciones?.length || 1} {t('instalac.', 'facilities')}
-                </span>
+                <div style={{ position: 'relative' }}>
+                  <button onClick={(e) => { e.stopPropagation(); setMenuAbierto(menuAbierto === empresa.id ? null : empresa.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--on-surface-variant)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                  </button>
+                  {menuAbierto === empresa.id && (
+                    <div style={{ position: 'absolute', top: '100%', right: 0, background: 'var(--surface)', border: '1px solid var(--outline-variant)', borderRadius: '0.75rem', padding: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: '120px' }}>
+                      <button onClick={(e) => handleEditar(empresa, e)} style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface)', borderRadius: '0.375rem' }} onMouseOver={e => e.currentTarget.style.background = 'var(--surface-container)'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                        {t('Editar', 'Edit')}
+                      </button>
+                      <button onClick={(e) => handleEliminar(empresa.id, e)} style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: '#D32F2F', borderRadius: '0.375rem' }} onMouseOver={e => e.currentTarget.style.background = '#FFEBEE'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                        {t('Eliminar', 'Delete')}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* KPIs */}

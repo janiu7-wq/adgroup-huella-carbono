@@ -13,6 +13,7 @@ export interface Empresa {
   periodoReporte: string; // YYYY
   metaAnual_tCO2e?: number;
   logoUrl?: string;
+  ventanillaUnica?: string;
   createdAt: string;
   updatedAt: string;
 }
