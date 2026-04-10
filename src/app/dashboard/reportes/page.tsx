@@ -22,7 +22,8 @@ const TENDENCIA_DATOS = [
 export default function ReportesPage() {
   const { t, lang } = useLanguage();
   const [tipoReporte, setTipoReporte] = useState('Reporte Ejecutivo para Directorio');
-  const [empresaId, setEmpresaId] = useState(EMPRESAS_DEMO[0].id);
+  const [empresas, setEmpresas] = useState<any[]>([]);
+  const [empresaId, setEmpresaId] = useState('');
   const [periodo, setPeriodo] = useState('2024');
   const [estadoReporte, setEstadoReporte] = useState('Borrador');
   
@@ -34,19 +35,24 @@ export default function ReportesPage() {
   useEffect(() => {
     const fetchDatos = async () => {
       try {
+        const empSnap = await getDocs(collection(db, 'empresas'));
+        const listEmp = empSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setEmpresas(listEmp);
+        if (listEmp.length > 0 && !empresaId) setEmpresaId(listEmp[0].id);
+
         const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
         const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
         setDatosDB(dbData);
       } catch (e) {
-        console.warn("Firestore no configurado. Usando demo local.", e);
+        console.warn("Firestore error.", e);
       } finally {
         setLoading(false);
       }
     };
     fetchDatos();
-  }, []);
+  }, [empresaId]);
 
-  const empresa = EMPRESAS_DEMO.find(e => e.id === empresaId) || EMPRESAS_DEMO[0];
+  const empresa = empresas.find(e => e.id === empresaId) || { razonSocial: 'No hay empresa' };
   const datos = datosDB.filter(d => d.empresaId === empresaId);
   const total = datos.reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
   const alcance1 = datos.filter(d => d.alcance === 1).reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
@@ -298,7 +304,7 @@ export default function ReportesPage() {
         <div style={{ flex: '1 1 180px' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--on-surface-variant)', marginBottom: '4px' }}>{t('EMPRESA / INSTALACIÓN', 'COMPANY / FACILITY')}</label>
           <select value={empresaId} onChange={e => setEmpresaId(e.target.value)} style={{ width: '100%', padding: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--outline)', background: 'var(--surface)', fontWeight: 600, fontSize: '0.875rem', outline: 'none' }}>
-            {EMPRESAS_DEMO.map(e => <option key={e.id} value={e.id}>{e.razonSocial}</option>)}
+            {empresas.map(e => <option key={e.id} value={e.id}>{e.razonSocial}</option>)}
           </select>
         </div>
         <div style={{ flex: '1 1 100px' }}>

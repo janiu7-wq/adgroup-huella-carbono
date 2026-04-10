@@ -66,14 +66,19 @@ export default function DatosActividadPage() {
   const [explorarFactores, setExplorarFactores] = useState(false);
   const [evidenciaFiles, setEvidenciaFiles] = useState<File[]>([]);
 
+  const [empresas, setEmpresas] = useState<any[]>([]);
+
   const fetchDatos = async () => {
     try {
+      const empSnap = await getDocs(collection(db, 'empresas'));
+      setEmpresas(empSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
       const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
       const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
       setDatos(dbData);
     } catch (e) {
-      console.warn("Firestore no configurado. Usando demo local.", e);
-      setDatos(DATOS_ACTIVIDAD_DEMO);
+      console.warn("Firestore error.", e);
+      setDatos([]);
     } finally {
       setLoading(false);
     }
@@ -200,7 +205,7 @@ export default function DatosActividadPage() {
     return true;
   });
 
-  const getNombreEmpresa = (id: string) => EMPRESAS_DEMO.find(e => e.id === id)?.razonSocial.split(' ')[0] ?? id;
+  const getNombreEmpresa = (id: string) => empresas.find(e => e.id === id)?.razonSocial.split(' ')[0] ?? id;
 
   return (
     <div style={{ padding: '2.5rem', minHeight: '100vh' }}>
@@ -271,7 +276,7 @@ export default function DatosActividadPage() {
                   id="select-empresa-form"
                 >
                   <option value="">{t('Seleccionar empresa...', 'Select company...')}</option>
-                  {EMPRESAS_DEMO.map(e => <option key={e.id} value={e.id}>{e.razonSocial}</option>)}
+                  {empresas.map(e => <option key={e.id} value={e.id}>{e.razonSocial}</option>)}
                 </select>
               </div>
 
@@ -542,7 +547,7 @@ export default function DatosActividadPage() {
             onChange={e => setFilterEmpresa(e.target.value)}
           >
             <option value="all">{t('Todas las empresas', 'All companies')}</option>
-            {EMPRESAS_DEMO.map(e => <option key={e.id} value={e.id}>{e.razonSocial.split(' ')[0]}</option>)}
+            {empresas.map(e => <option key={e.id} value={e.id}>{e.razonSocial.split(' ')[0]}</option>)}
           </select>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface-variant)', alignSelf: 'center', marginLeft: 'auto' }}>
             {datosFiltrados.length} {t('registros', 'records')}
