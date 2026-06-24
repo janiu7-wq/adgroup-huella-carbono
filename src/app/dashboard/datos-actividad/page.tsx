@@ -64,6 +64,8 @@ export default function DatosActividadPage() {
   const [showForm, setShowForm] = useState(false);
   const [filterAlcance, setFilterAlcance] = useState<string>('all');
   const [filterEmpresa, setFilterEmpresa] = useState<string>('all');
+  const [filterTipoFuente, setFilterTipoFuente] = useState<string>('all');
+  const [filterFuenteEmision, setFilterFuenteEmision] = useState<string>('');
   const [explorarFactores, setExplorarFactores] = useState(false);
   const [evidenciaFiles, setEvidenciaFiles] = useState<File[]>([]);
 
@@ -218,8 +220,12 @@ export default function DatosActividadPage() {
   const datosFiltrados = datos.filter(d => {
     if (filterAlcance !== 'all' && d.alcance !== parseInt(filterAlcance)) return false;
     if (filterEmpresa !== 'all' && d.empresaId !== filterEmpresa) return false;
+    if (filterTipoFuente !== 'all' && d.tipoFuente !== filterTipoFuente) return false;
+    if (filterFuenteEmision && d.categoria && !d.categoria.toLowerCase().includes(filterFuenteEmision.toLowerCase())) return false;
     return true;
   });
+
+  const sumatoriaFiltrada = datosFiltrados.reduce((s, d) => s + (d.emisionCalculada_tCO2e || 0), 0);
 
   const getNombreEmpresa = (id: string) => empresas.find(e => e.id === id)?.razonSocial.split(' ')[0] ?? id;
 
@@ -565,9 +571,33 @@ export default function DatosActividadPage() {
             <option value="all">{t('Todas las empresas', 'All companies')}</option>
             {empresas.map(e => <option key={e.id} value={e.id}>{e.razonSocial.split(' ')[0]}</option>)}
           </select>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface-variant)', alignSelf: 'center', marginLeft: 'auto' }}>
-            {datosFiltrados.length} {t('registros', 'records')}
-          </p>
+          <select
+            id="filter-tipo-fuente"
+            className="input-field"
+            style={{ width: 'auto' }}
+            value={filterTipoFuente}
+            onChange={e => setFilterTipoFuente(e.target.value)}
+          >
+            <option value="all">{t('Cualquier tipo', 'Any type')}</option>
+            {Object.keys(UNIDADES).map(k => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
+          </select>
+          <input
+            type="text"
+            id="filter-fuente-emision"
+            className="input-field"
+            style={{ width: '200px' }}
+            placeholder={t('Buscar por nombre fuente...', 'Search by source name...')}
+            value={filterFuenteEmision}
+            onChange={e => setFilterFuenteEmision(e.target.value)}
+          />
+          <div style={{ alignSelf: 'center', marginLeft: 'auto', textAlign: 'right' }}>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface-variant)' }}>
+              {datosFiltrados.length} {t('registros filtrados', 'filtered records')}
+            </p>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700, color: 'var(--primary-container)' }}>
+              Total: {sumatoriaFiltrada.toFixed(3)} tCO₂e
+            </p>
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
