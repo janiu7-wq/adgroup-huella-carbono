@@ -49,16 +49,18 @@ export default function DashboardPage() {
     fetchDatos();
   }, []);
 
+  const datosFiltrados = datosDB.filter(d => d.periodo?.startsWith(selectedPeriod));
+
   const EMPRESA_RANKING = empresasDB.map(e => {
-    const datosE = datosDB.filter(d => d.empresaId === e.id);
+    const datosE = datosFiltrados.filter(d => d.empresaId === e.id);
     const tot = datosE.reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
     return { name: e.razonSocial.split(' ')[0], total: parseFloat(tot.toFixed(1)), full: e.razonSocial, id: e.id };
   }).sort((a, b) => b.total - a.total);
 
-  const totalEmisiones = datosDB.reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
-  const alcance1 = datosDB.filter(d => d.alcance === 1).reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
-  const alcance2 = datosDB.filter(d => d.alcance === 2).reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
-  const alcance3 = datosDB.filter(d => d.alcance === 3).reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
+  const totalEmisiones = datosFiltrados.reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
+  const alcance1 = datosFiltrados.filter(d => d.alcance === 1).reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
+  const alcance2 = datosFiltrados.filter(d => d.alcance === 2).reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
+  const alcance3 = datosFiltrados.filter(d => d.alcance === 3).reduce((s, d) => s + (d.emisionCalculada_tCO2e||0), 0);
 
   const HOLDING_KPIS = {
     totalEmisiones: totalEmisiones > 0 ? totalEmisiones : 0,
