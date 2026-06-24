@@ -1,12 +1,50 @@
 'use client';
-import { use } from 'react';
-import { DATOS_ACTIVIDAD_DEMO, EMPRESAS_DEMO } from '@/lib/demo-data';
+import { use, useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { DatoActividad, Empresa } from '@/lib/types';
 import Link from 'next/link';
 
 export default function DatoDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   
-  const dato = DATOS_ACTIVIDAD_DEMO.find(d => d.id === id);
+  const [dato, setDato] = useState<DatoActividad | null>(null);
+  const [empresa, setEmpresa] = useState<Empresa | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const docRef = doc(db, 'datos_actividad', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const d = { id: docSnap.id, ...docSnap.data() } as DatoActividad;
+          setDato(d);
+          
+          if (d.empresaId) {
+            const empRef = doc(db, 'empresas', d.empresaId);
+            const empSnap = await getDoc(empRef);
+            if (empSnap.exists()) {
+              setEmpresa({ id: empSnap.id, ...empSnap.data() } as Empresa);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching detail:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '2.5rem', textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--on-surface-variant)' }}>Cargando auditoría...</h1>
+      </div>
+    );
+  }
 
   if (!dato) {
     return (
@@ -16,8 +54,6 @@ export default function DatoDetallePage({ params }: { params: Promise<{ id: stri
       </div>
     );
   }
-
-  const empresa = EMPRESAS_DEMO.find(e => e.id === dato.empresaId);
 
   return (
     <div style={{ padding: '2.5rem', maxWidth: '800px', margin: '0 auto', minHeight: '100vh' }}>
