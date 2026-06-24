@@ -221,7 +221,13 @@ export default function DatosActividadPage() {
     if (filterAlcance !== 'all' && d.alcance !== parseInt(filterAlcance)) return false;
     if (filterEmpresa !== 'all' && d.empresaId !== filterEmpresa) return false;
     if (filterTipoFuente !== 'all' && d.tipoFuente !== filterTipoFuente) return false;
-    if (filterFuenteEmision && d.categoria && !d.categoria.toLowerCase().includes(filterFuenteEmision.toLowerCase())) return false;
+    
+    if (filterFuenteEmision) {
+      const term = filterFuenteEmision.toLowerCase();
+      const matchCategoria = d.categoria?.toLowerCase().includes(term);
+      const matchDescripcion = d.descripcion?.toLowerCase().includes(term);
+      if (!matchCategoria && !matchDescripcion) return false;
+    }
     return true;
   });
 
@@ -626,7 +632,8 @@ export default function DatosActividadPage() {
                     <span className={`alcance-pill-${d.alcance}`}>A{d.alcance}</span>
                   </td>
                   <td style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem' }}>
-                    {d.tipoFuente.replace(/_/g, ' ')}
+                    <span style={{ fontWeight: 600, display: 'block', color: 'var(--on-surface)' }}>{d.categoria || 'Sin nombre'}</span>
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--on-surface-variant)', textTransform: 'capitalize' }}>{d.tipoFuente.replace(/_/g, ' ')}</span>
                   </td>
                   <td style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', fontWeight: 500 }}>
                     {d.cantidad.toLocaleString('es-CL')} {d.unidad}
