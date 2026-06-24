@@ -222,16 +222,12 @@ export default function DatosActividadPage() {
     if (filterEmpresa !== 'all' && d.empresaId !== filterEmpresa) return false;
     if (filterTipoFuente !== 'all' && d.tipoFuente !== filterTipoFuente) return false;
     
-    if (filterFuenteEmision) {
-      const term = filterFuenteEmision.toLowerCase();
-      const matchCategoria = d.categoria?.toLowerCase().includes(term);
-      const matchDescripcion = d.descripcion?.toLowerCase().includes(term);
-      if (!matchCategoria && !matchDescripcion) return false;
-    }
+    if (filterFuenteEmision && filterFuenteEmision !== 'all' && d.categoria !== filterFuenteEmision) return false;
     return true;
   });
 
   const sumatoriaFiltrada = datosFiltrados.reduce((s, d) => s + (d.emisionCalculada_tCO2e || 0), 0);
+  const fuentesUnicas = Array.from(new Set(datos.map(d => d.categoria).filter(Boolean))).sort();
 
   const getNombreEmpresa = (id: string) => empresas.find(e => e.id === id)?.razonSocial.split(' ')[0] ?? id;
 
@@ -587,15 +583,16 @@ export default function DatosActividadPage() {
             <option value="all">{t('Cualquier tipo', 'Any type')}</option>
             {Object.keys(UNIDADES).map(k => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
           </select>
-          <input
-            type="text"
+          <select
             id="filter-fuente-emision"
             className="input-field"
-            style={{ width: '200px' }}
-            placeholder={t('Buscar por nombre fuente...', 'Search by source name...')}
+            style={{ width: 'auto' }}
             value={filterFuenteEmision}
             onChange={e => setFilterFuenteEmision(e.target.value)}
-          />
+          >
+            <option value="all">{t('Cualquier fuente', 'Any source')}</option>
+            {fuentesUnicas.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
           <div style={{ alignSelf: 'center', marginLeft: 'auto', textAlign: 'right' }}>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface-variant)' }}>
               {datosFiltrados.length} {t('registros filtrados', 'filtered records')}
