@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import { DATOS_ACTIVIDAD_DEMO, EMPRESAS_DEMO } from '@/lib/demo-data';
 import { FACTORES_HUELLACHILE } from '@/lib/calculos-ghg';
 import type { DatoActividad } from '@/lib/types';
@@ -167,21 +168,36 @@ export default function DatosActividadPage() {
     if (!resultadoRealtime) return;
     setGuardando(true);
 
-    const nuevoDato = {
-      empresaId: form.empresaId,
-      alcance: form.alcance,
-      tipoFuente: form.tipoFuente,
-      categoria: form.fuenteEmision,
-      cantidad: parseFloat(form.cantidad),
-      unidad: UNIDADES[form.tipoFuente] || 'und',
-      periodo: form.periodo,
-      emisionCalculada_tCO2e: resultadoRealtime.emision,
-      factorValor: resultadoRealtime.factor,
-      factorFuente: resultadoRealtime.fuente,
-      estado: 'ingresado'
-    };
-
     try {
+      let evidenciasArray: { name: string; url: string; path: string }[] = [];
+      if (evidenciaFiles.length > 0) {
+        for (const file of evidenciaFiles) {
+          const timestamp = Date.now();
+          const filePath = `evidencias/${form.empresaId}/${timestamp}_${file.name}`;
+          const fileRef = ref(storage, filePath);
+          await uploadBytes(fileRef, file);
+          const url = await getDownloadURL(fileRef);
+          evidenciasArray.push({ name: file.name, url, path: filePath });
+        }
+      }
+
+      const nuevoDato = {
+        empresaId: form.empresaId,
+        alcance: form.alcance,
+        tipoFuente: form.tipoFuente,
+        categoria: form.fuenteEmision,
+        cantidad: parseFloat(form.cantidad),
+        unidad: UNIDADES[form.tipoFuente] || 'und',
+        periodo: form.periodo,
+        emisionCalculada_tCO2e: resultadoRealtime.emision,
+        factorValor: resultadoRealtime.factor,
+        factorFuente: resultadoRealtime.fuente,
+        estado: 'ingresado',
+        evidencias: evidenciasArray,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
       await addDoc(collection(db, 'datos_actividad'), nuevoDato);
       await fetchDatos();
     } catch (error) {

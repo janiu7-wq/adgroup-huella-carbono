@@ -55,6 +55,7 @@ export interface DatoActividad {
   responsableUid: string;
   descripcion?: string;
   instalacionId?: string;
+  evidencias?: { name: string; url: string; path: string }[];
   createdAt: string;
   updatedAt: string;
 }
