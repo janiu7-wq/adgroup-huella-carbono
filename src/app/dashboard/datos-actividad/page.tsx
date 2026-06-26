@@ -173,13 +173,18 @@ export default function DatosActividadPage() {
     try {
       let evidenciasArray: { name: string; url: string; path: string }[] = [];
       if (evidenciaFiles.length > 0) {
-        for (const file of evidenciaFiles) {
-          const timestamp = Date.now();
-          const filePath = `evidencias/${form.empresaId}/${timestamp}_${file.name}`;
-          const fileRef = ref(storage, filePath);
-          await uploadBytes(fileRef, file);
-          const url = await getDownloadURL(fileRef);
-          evidenciasArray.push({ name: file.name, url, path: filePath });
+        try {
+          for (const file of evidenciaFiles) {
+            const timestamp = Date.now();
+            const filePath = `evidencias/${form.empresaId}/${timestamp}_${file.name}`;
+            const fileRef = ref(storage, filePath);
+            await uploadBytes(fileRef, file);
+            const url = await getDownloadURL(fileRef);
+            evidenciasArray.push({ name: file.name, url, path: filePath });
+          }
+        } catch (storageError) {
+          console.warn('Error subiendo evidencia (posible límite de plan Spark). Se guardará el registro sin el archivo.', storageError);
+          alert('No se pudo subir el archivo adjunto (revisa si Firebase Storage está habilitado). El registro de emisión se guardará de todas formas.');
         }
       }
 

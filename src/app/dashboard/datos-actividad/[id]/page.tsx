@@ -53,9 +53,13 @@ export default function DatoDetallePage({ params }: { params: Promise<{ id: stri
     
     try {
       setSaving(true);
-      // Borrar de storage
-      const fileRef = ref(storage, pathToDelete);
-      await deleteObject(fileRef);
+      // Borrar de storage (intentar)
+      try {
+        const fileRef = ref(storage, pathToDelete);
+        await deleteObject(fileRef);
+      } catch (storageError) {
+        console.warn("No se pudo borrar de Storage, pero se removerá de la BD", storageError);
+      }
 
       // Actualizar doc
       const updatedEvidencias = (dato.evidencias || []).filter(e => e.path !== pathToDelete);
@@ -84,13 +88,18 @@ export default function DatoDetallePage({ params }: { params: Promise<{ id: stri
 
       // Upload new files if any
       if (newFiles.length > 0) {
-        for (const file of newFiles) {
-          const timestamp = Date.now();
-          const filePath = `evidencias/${dato.empresaId}/${timestamp}_${file.name}`;
-          const fileRef = ref(storage, filePath);
-          await uploadBytes(fileRef, file);
-          const url = await getDownloadURL(fileRef);
-          evidenciasArray.push({ name: file.name, url, path: filePath });
+        try {
+          for (const file of newFiles) {
+            const timestamp = Date.now();
+            const filePath = `evidencias/${dato.empresaId}/${timestamp}_${file.name}`;
+            const fileRef = ref(storage, filePath);
+            await uploadBytes(fileRef, file);
+            const url = await getDownloadURL(fileRef);
+            evidenciasArray.push({ name: file.name, url, path: filePath });
+          }
+        } catch (storageError) {
+          console.warn("Error subiendo evidencia (Plan Spark). Guardando registro sin el archivo nuevo.", storageError);
+          alert('No se pudo subir el archivo adjunto. Los demás cambios del registro se guardarán de todas formas.');
         }
       }
 
