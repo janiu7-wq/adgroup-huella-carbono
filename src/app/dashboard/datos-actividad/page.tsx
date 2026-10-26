@@ -185,16 +185,22 @@ export default function DatosActividadPage() {
       if (evidenciaFiles.length > 0) {
         try {
           for (const file of evidenciaFiles) {
-            const timestamp = Date.now();
-            const filePath = `evidencias/${form.empresaId}/${timestamp}_${file.name}`;
-            const fileRef = ref(storage, filePath);
-            await uploadBytes(fileRef, file);
-            const url = await getDownloadURL(fileRef);
-            evidenciasArray.push({ name: file.name, url, path: filePath });
+            const uploadData = new FormData();
+            uploadData.append('file', file);
+            uploadData.append('empresaId', form.empresaId);
+            uploadData.append('periodo', form.periodo);
+
+            const res = await fetch('/api/sharepoint/upload', {
+              method: 'POST',
+              body: uploadData,
+            });
+            const data = await res.json();
+            if (data.url) {
+              evidenciasArray.push({ name: file.name, url: data.url, path: data.path || file.name });
+            }
           }
-        } catch (storageError) {
-          console.warn('Error subiendo evidencia (posible límite de plan Spark). Se guardará el registro sin el archivo.', storageError);
-          alert('No se pudo subir el archivo adjunto (revisa si Firebase Storage está habilitado). El registro de emisión se guardará de todas formas.');
+        } catch (uploadError) {
+          console.warn('Error subiendo evidencia a SharePoint. Se guardará el registro principal.', uploadError);
         }
       }
 
