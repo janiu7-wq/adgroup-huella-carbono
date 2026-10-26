@@ -180,3 +180,18 @@ export function getSelloHuellaChile(porcentajeReduccion: number): {
   }
   return null;
 }
+
+/**
+ * Extrae y calcula dinámicamente los periodos anuales disponibles
+ * a partir de los datos registrados y el año en curso.
+ */
+export function obtenerPeriodosDisponibles(registros: { periodo?: string }[] = []): string[] {
+  const currentYear = new Date().getFullYear();
+  const añosBase = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map(String);
+  const añosRegistros = registros
+    .map(r => r.periodo ? r.periodo.split('-')[0] : null)
+    .filter((año): año is string => Boolean(año && /^\d{4}$/.test(año)));
+
+  const todos = Array.from(new Set([...añosBase, ...añosRegistros]));
+  return todos.sort((a, b) => Number(b) - Number(a));
+}

@@ -4,7 +4,7 @@ import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { DATOS_ACTIVIDAD_DEMO, EMPRESAS_DEMO } from '@/lib/demo-data';
-import { FACTORES_HUELLACHILE } from '@/lib/calculos-ghg';
+import { FACTORES_HUELLACHILE, obtenerPeriodosDisponibles } from '@/lib/calculos-ghg';
 import type { DatoActividad } from '@/lib/types';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -64,6 +64,7 @@ export default function DatosActividadPage() {
   const [showForm, setShowForm] = useState(false);
   const [filterAlcance, setFilterAlcance] = useState<string>('all');
   const [filterEmpresa, setFilterEmpresa] = useState<string>('all');
+  const [filterPeriodo, setFilterPeriodo] = useState<string>('all');
   const [filterTipoFuente, setFilterTipoFuente] = useState<string>('all');
   const [filterFuenteEmision, setFilterFuenteEmision] = useState<string>('');
   const [explorarFactores, setExplorarFactores] = useState(false);
@@ -252,11 +253,14 @@ export default function DatosActividadPage() {
   const datosFiltrados = datos.filter(d => {
     if (filterAlcance !== 'all' && d.alcance !== parseInt(filterAlcance)) return false;
     if (filterEmpresa !== 'all' && d.empresaId !== filterEmpresa) return false;
+    if (filterPeriodo !== 'all' && !d.periodo?.startsWith(filterPeriodo)) return false;
     if (filterTipoFuente !== 'all' && d.tipoFuente !== filterTipoFuente) return false;
     
     if (filterFuenteEmision && filterFuenteEmision !== 'all' && d.categoria !== filterFuenteEmision) return false;
     return true;
   });
+
+  const periodosDisponibles = obtenerPeriodosDisponibles(datos.length > 0 ? datos : DATOS_ACTIVIDAD_DEMO);
 
   const datosOrdenados = [...datosFiltrados].sort((a, b) => {
     if (!sortField) return 0;
@@ -657,6 +661,18 @@ export default function DatosActividadPage() {
           >
             <option value="all">{t('Cualquier fuente', 'Any source')}</option>
             {fuentesUnicas.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <select
+            id="filter-periodo"
+            className="input-field"
+            style={{ width: 'auto' }}
+            value={filterPeriodo}
+            onChange={e => setFilterPeriodo(e.target.value)}
+          >
+            <option value="all">{t('Todos los períodos', 'All periods')}</option>
+            {periodosDisponibles.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
           </select>
           <div style={{ alignSelf: 'center', marginLeft: 'auto', textAlign: 'right' }}>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--on-surface-variant)' }}>

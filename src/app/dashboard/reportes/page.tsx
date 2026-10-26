@@ -7,6 +7,7 @@ import { EMPRESAS_DEMO, DATOS_ACTIVIDAD_DEMO } from '@/lib/demo-data';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, FileText, FileSpreadsheet, Package, FileCheck2, Clock, CheckCircle2, History, Paperclip, CheckCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { obtenerPeriodosDisponibles } from '@/lib/calculos-ghg';
 
 const COLORS = ['var(--primary)', '#5DA989', '#FFB703', '#FB8C00', '#00ACC1'];
 
@@ -61,6 +62,7 @@ export default function ReportesPage() {
   }, [empresaId]);
 
   const empresa = empresas.find(e => e.id === empresaId) || empresas[0] || { razonSocial: 'ADGROUP Holding', instalaciones: [] };
+  const periodosDisponibles = obtenerPeriodosDisponibles(datosDB.length > 0 ? datosDB : DATOS_ACTIVIDAD_DEMO);
   const datos = datosDB.filter(d => d.empresaId === empresaId && (!periodo || d.periodo?.startsWith(periodo)));
 
   type SortFieldReportes = 'periodo' | 'fuente' | 'alcance' | 'cantidad' | 'factor' | 'emision';
@@ -363,11 +365,9 @@ export default function ReportesPage() {
         <div style={{ flex: '1 1 100px' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--on-surface-variant)', marginBottom: '4px' }}>{t('PERIODO BASE', 'BASE PERIOD')}</label>
           <select value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ width: '100%', padding: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--outline)', background: 'var(--surface)', fontWeight: 600, fontSize: '0.875rem', outline: 'none' }}>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
+            {periodosDisponibles.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
           </select>
         </div>
         <div style={{ flex: '1 1 120px' }}>

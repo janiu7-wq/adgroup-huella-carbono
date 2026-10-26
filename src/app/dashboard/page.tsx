@@ -8,7 +8,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { EMPRESAS_DEMO, TENDENCIA_HOLDING_DEMO, DATOS_ACTIVIDAD_DEMO } from '@/lib/demo-data';
-import { getSelloHuellaChile } from '@/lib/calculos-ghg';
+import { getSelloHuellaChile, obtenerPeriodosDisponibles } from '@/lib/calculos-ghg';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -49,6 +49,7 @@ export default function DashboardPage() {
     fetchDatos();
   }, []);
 
+  const periodosDisponibles = obtenerPeriodosDisponibles(datosDB.length > 0 ? datosDB : DATOS_ACTIVIDAD_DEMO);
   const datosFiltrados = datosDB.filter(d => d.periodo?.startsWith(selectedPeriod));
 
   const EMPRESA_RANKING = empresasDB.map(e => {
@@ -123,11 +124,9 @@ export default function DashboardPage() {
             className="input-field"
             style={{ width: 'auto', padding: '0.5rem 0.875rem', outline: 'none', border: '1px solid var(--outline-variant)' }}
           >
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
+            {periodosDisponibles.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
           </select>
           <Link href="/dashboard/datos-actividad" className="btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
