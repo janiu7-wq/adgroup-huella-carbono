@@ -4,7 +4,7 @@ import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { DATOS_ACTIVIDAD_DEMO, EMPRESAS_DEMO } from '@/lib/demo-data';
-import { FACTORES_HUELLACHILE, obtenerPeriodosDisponibles } from '@/lib/calculos-ghg';
+import { FACTORES_HUELLACHILE, obtenerPeriodosDisponibles, obtenerUltimoPeriodoRegistrado } from '@/lib/calculos-ghg';
 import type { DatoActividad } from '@/lib/types';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -75,14 +75,19 @@ export default function DatosActividadPage() {
   const fetchDatos = async () => {
     try {
       const empSnap = await getDocs(collection(db, 'empresas'));
-      setEmpresas(empSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const listEmp = empSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setEmpresas(listEmp.length > 0 ? listEmp : EMPRESAS_DEMO);
       
       const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
       const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
-      setDatos(dbData);
+      const finalDatos = dbData.length > 0 ? dbData : DATOS_ACTIVIDAD_DEMO;
+      setDatos(finalDatos);
+      setFilterPeriodo(obtenerUltimoPeriodoRegistrado(finalDatos));
     } catch (e) {
       console.warn("Firestore error.", e);
-      setDatos([]);
+      setEmpresas(EMPRESAS_DEMO);
+      setDatos(DATOS_ACTIVIDAD_DEMO);
+      setFilterPeriodo(obtenerUltimoPeriodoRegistrado(DATOS_ACTIVIDAD_DEMO));
     } finally {
       setLoading(false);
     }

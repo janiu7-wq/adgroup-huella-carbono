@@ -8,7 +8,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { EMPRESAS_DEMO, TENDENCIA_HOLDING_DEMO, DATOS_ACTIVIDAD_DEMO } from '@/lib/demo-data';
-import { getSelloHuellaChile, obtenerPeriodosDisponibles } from '@/lib/calculos-ghg';
+import { getSelloHuellaChile, obtenerPeriodosDisponibles, obtenerUltimoPeriodoRegistrado } from '@/lib/calculos-ghg';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -37,13 +37,18 @@ export default function DashboardPage() {
       try {
         const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
         const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
-        setDatosDB(dbData);
+        const finalDatos = dbData.length > 0 ? dbData : DATOS_ACTIVIDAD_DEMO;
+        setDatosDB(finalDatos);
+        setSelectedPeriod(obtenerUltimoPeriodoRegistrado(finalDatos));
         
         const respEmpresas = await getDocs(collection(db, 'empresas'));
         const listE = respEmpresas.docs.map(d => ({ id: d.id, ...d.data() } as Empresa));
-        setEmpresasDB(listE);
+        setEmpresasDB(listE.length > 0 ? listE : EMPRESAS_DEMO);
       } catch (e) {
         console.warn('Firestore fallback dashboard datos_actividad', e);
+        setDatosDB(DATOS_ACTIVIDAD_DEMO);
+        setEmpresasDB(EMPRESAS_DEMO);
+        setSelectedPeriod(obtenerUltimoPeriodoRegistrado(DATOS_ACTIVIDAD_DEMO));
       }
     };
     fetchDatos();

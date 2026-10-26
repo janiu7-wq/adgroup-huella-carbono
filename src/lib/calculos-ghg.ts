@@ -195,3 +195,16 @@ export function obtenerPeriodosDisponibles(registros: { periodo?: string }[] = [
   const todos = Array.from(new Set([...añosBase, ...añosRegistros]));
   return todos.sort((a, b) => Number(b) - Number(a));
 }
+
+/**
+ * Obtiene el año más reciente que efectivamente tiene registros cargados.
+ */
+export function obtenerUltimoPeriodoRegistrado(registros: { periodo?: string }[] = []): string {
+  const años = registros
+    .map(r => r.periodo ? r.periodo.split('-')[0] : null)
+    .filter((año): año is string => Boolean(año && /^\d{4}$/.test(año)))
+    .sort((a, b) => Number(b) - Number(a));
+
+  return años[0] || String(new Date().getFullYear());
+}
+

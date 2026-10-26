@@ -7,7 +7,7 @@ import { EMPRESAS_DEMO, DATOS_ACTIVIDAD_DEMO } from '@/lib/demo-data';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, FileText, FileSpreadsheet, Package, FileCheck2, Clock, CheckCircle2, History, Paperclip, CheckCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { obtenerPeriodosDisponibles } from '@/lib/calculos-ghg';
+import { obtenerPeriodosDisponibles, obtenerUltimoPeriodoRegistrado } from '@/lib/calculos-ghg';
 
 const COLORS = ['var(--primary)', '#5DA989', '#FFB703', '#FB8C00', '#00ACC1'];
 
@@ -48,12 +48,15 @@ export default function ReportesPage() {
 
         const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
         const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
-        setDatosDB(dbData.length > 0 ? dbData : DATOS_ACTIVIDAD_DEMO);
+        const finalDatos = dbData.length > 0 ? dbData : DATOS_ACTIVIDAD_DEMO;
+        setDatosDB(finalDatos);
+        setPeriodo(obtenerUltimoPeriodoRegistrado(finalDatos));
       } catch (e) {
         console.warn("Firestore error, activando respaldo demo.", e);
         setEmpresas(EMPRESAS_DEMO);
         if (!empresaId) setEmpresaId(EMPRESAS_DEMO[0].id);
         setDatosDB(DATOS_ACTIVIDAD_DEMO);
+        setPeriodo(obtenerUltimoPeriodoRegistrado(DATOS_ACTIVIDAD_DEMO));
       } finally {
         setLoading(false);
       }
