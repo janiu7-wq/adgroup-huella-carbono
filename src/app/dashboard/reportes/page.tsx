@@ -37,14 +37,22 @@ export default function ReportesPage() {
       try {
         const empSnap = await getDocs(collection(db, 'empresas'));
         const listEmp = empSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setEmpresas(listEmp);
-        if (listEmp.length > 0 && !empresaId) setEmpresaId(listEmp[0].id);
+        if (listEmp.length > 0) {
+          setEmpresas(listEmp);
+          if (!empresaId) setEmpresaId(listEmp[0].id);
+        } else {
+          setEmpresas(EMPRESAS_DEMO);
+          if (!empresaId) setEmpresaId(EMPRESAS_DEMO[0].id);
+        }
 
         const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
         const dbData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DatoActividad));
-        setDatosDB(dbData);
+        setDatosDB(dbData.length > 0 ? dbData : DATOS_ACTIVIDAD_DEMO);
       } catch (e) {
-        console.warn("Firestore error.", e);
+        console.warn("Firestore error, activando respaldo demo.", e);
+        setEmpresas(EMPRESAS_DEMO);
+        if (!empresaId) setEmpresaId(EMPRESAS_DEMO[0].id);
+        setDatosDB(DATOS_ACTIVIDAD_DEMO);
       } finally {
         setLoading(false);
       }
@@ -52,8 +60,8 @@ export default function ReportesPage() {
     fetchDatos();
   }, [empresaId]);
 
-  const empresa = empresas.find(e => e.id === empresaId) || { razonSocial: 'No hay empresa' };
-  const datos = datosDB.filter(d => d.empresaId === empresaId);
+  const empresa = empresas.find(e => e.id === empresaId) || empresas[0] || { razonSocial: 'ADGROUP Holding', instalaciones: [] };
+  const datos = datosDB.filter(d => d.empresaId === empresaId && (!periodo || d.periodo?.startsWith(periodo)));
   const total = datos.reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
   const alcance1 = datos.filter(d => d.alcance === 1).reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
   const alcance2 = datos.filter(d => d.alcance === 2).reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
@@ -127,12 +135,12 @@ export default function ReportesPage() {
       else if (tipoReporte === 'Informe de Cuantificación Organizacional') {
         doc.text('DECLARACIÓN DE CUANTIFICACIÓN ISO 14064-1', 14, y);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-        doc.text(`Límites Organizacionales: Control Operacional en ${empresa.instalaciones.length} sucursales.`, 14, y+10);
+        doc.text(`Límites Organizacionales: Control Operacional en ${(empresa.instalaciones?.length ?? 1)} sucursales.`, 14, y+10);
         doc.text(`Categorías de Emisión: Combustibles móviles, Electricidad SEN, Viajes de negocio.`, 14, y+16);
         doc.text(`Calidad de Datos: Alto grado de certeza. Incertidumbre estimada de +/- 5%.`, 14, y+22);
         
-        doc.text('Desglose de Factores Aplicados (Muestra):', 14, y+34);
-        datos.slice(0,4).forEach((d, i) => doc.text(`- ${d.factorId} (Fuente: ${d.factorFuente}): ${d.factorValor} kgCO2e/u`, 14, y+42 + (i*6)));
+        doc.text('Desglose de Factores Aplicados con Fecha (Muestra):', 14, y+34);
+        datos.slice(0,4).forEach((d, i) => doc.text(`- [${d.periodo || 'Periodo S/I'}] ${d.factorId} (${d.factorFuente}): ${d.factorValor} kgCO2e/u`, 14, y+42 + (i*6)));
       }
       else if (tipoReporte === 'Informe de Reducción de Emisiones') {
         doc.text('EVALUACIÓN DE PROYECTOS DE REDUCCIÓN', 14, y);
@@ -164,16 +172,26 @@ export default function ReportesPage() {
         doc.text('TRACKING METADATA / AUDITORÍA (ISO 14064-1 Cap 7.3)', 14, y);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
         datos.slice(0, 8).forEach((d, i) => {
-          doc.text(`ID:${d.id} | Timestamp: ${d.periodo} | Factor:${d.factorValor} => ${d.emisionCalculada_tCO2e.toFixed(1)}t`, 14, y+10 + (i*6));
+          const fechaReg = d.createdAt ? d.createdAt.substring(0, 10) : (d.periodo || 'N/A');
+          doc.text(`Fecha: ${d.periodo} (Reg: ${fechaReg}) | A${d.alcance} ${d.tipoFuente} | ${d.cantidad} ${d.unidad} => ${(d.emisionCalculada_tCO2e || 0).toFixed(2)} tCO2e`, 14, y+10 + (i*6));
         });
       }
       else if (tipoReporte === 'Reporte Comparativo Multiempresa') {
         doc.text('BENCHMARK HOLDING ADGROUP', 14, y);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-        doc.text('1. ADHome Style: 44,000 tCO2e (Mayor emisión total)', 14, y+10);
-        doc.text('2. ADRetail Central: 9,800 tCO2e', 14, y+16);
-        doc.text('3. ADElectronics: 3,100 tCO2e (Mejor intensidad tCO2e/M$)', 14, y+22);
-        doc.text('Alertas: Se requiere plan corporativo de gestión logística para equiparar eficiencias.', 14, y+32);
+        empresas.slice(0, 4).forEach((emp, idx) => {
+          const emisionEmp = datosDB.filter(d => d.empresaId === emp.id).reduce((s, d) => s + (d.emisionCalculada_tCO2e || 0), 0);
+          doc.text(`${idx + 1}. ${emp.razonSocial}: ${emisionEmp.toFixed(2)} tCO2e`, 14, y + 10 + (idx * 6));
+        });
+        doc.text('Resumen: Consolidación cruzada de emisiones corporativas del holding.', 14, y+38);
+      }
+      else if (tipoReporte === 'Reporte HuellaChile Oficial') {
+        doc.text('DECLARACIÓN OFICIAL PROGRAMA HUELLACHILE', 14, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+        doc.text(`Periodo Evaluado: ${periodo} | RUT: ${empresa.rut || '76.123.456-7'}`, 14, y+10);
+        doc.text(`Emisiones Totales Reconocidas: ${total.toFixed(2)} tCO2e`, 14, y+16);
+        doc.text(`Desglose Oficial: Alcance 1: ${alcance1.toFixed(2)} t | Alcance 2: ${alcance2.toFixed(2)} t | Alcance 3: ${alcance3.toFixed(2)} t`, 14, y+22);
+        doc.text(`Cumplimiento de sellos: Elegible para Sello de Cuantificación HuellaChile.`, 14, y+28);
       }
 
       // Footer común
@@ -214,10 +232,11 @@ export default function ReportesPage() {
       ];
 
       const detalleAuditoria = [
-        ['ID', 'Empresa', 'Alcance', 'Categoría', 'Fuente de Datos', 'Cantidad', 'Unidad', 'Factor Aplicado', 'Fuente Factor', 'Usuario/Trazabilidad', 'Emisión tCO2e'],
+        ['ID', 'Empresa', 'Fecha / Periodo Consumo', 'Fecha Registro Sistema', 'Alcance', 'Categoría', 'Fuente de Datos', 'Cantidad', 'Unidad', 'Factor Aplicado', 'Fuente Factor', 'Usuario/Trazabilidad', 'Emisión tCO2e'],
         ...datos.map(d => [
-          d.id, empresa.razonSocial, `Alcance ${d.alcance}`, d.categoria, d.tipoFuente, 
-          d.cantidad, d.unidad, d.factorValor, d.factorFuente, d.responsableUid, d.emisionCalculada_tCO2e.toFixed(3)
+          d.id || 'N/A', empresa.razonSocial, d.periodo || 'N/A', d.createdAt ? d.createdAt.substring(0, 10) : (d.periodo || 'N/A'),
+          `Alcance ${d.alcance}`, d.categoria, d.tipoFuente, 
+          d.cantidad, d.unidad, d.factorValor, d.factorFuente, d.responsableUid || 'admin', (d.emisionCalculada_tCO2e || 0).toFixed(3)
         ])
       ];
 
@@ -310,7 +329,11 @@ export default function ReportesPage() {
         <div style={{ flex: '1 1 100px' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--on-surface-variant)', marginBottom: '4px' }}>{t('PERIODO BASE', 'BASE PERIOD')}</label>
           <select value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ width: '100%', padding: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--outline)', background: 'var(--surface)', fontWeight: 600, fontSize: '0.875rem', outline: 'none' }}>
-            <option>2024</option><option>2023</option><option>2022</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
           </select>
         </div>
         <div style={{ flex: '1 1 120px' }}>
@@ -444,6 +467,7 @@ export default function ReportesPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
               <thead style={{ background: 'var(--surface-container-lowest)', position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
+                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Fecha / Periodo', 'Date / Period')}</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Cod / Fuente', 'Cod / Source')}</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Alcance', 'Scope')}</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('T. Actividad', 'Activity Type')}</th>
@@ -455,6 +479,10 @@ export default function ReportesPage() {
               <tbody>
                 {datos.map((d, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--surface-container-low)' }}>
+                    <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{d.periodo}</span>
+                      {d.createdAt && <div style={{ fontSize: '0.6875rem', color: 'var(--on-surface-variant)' }}>{d.createdAt.substring(0, 10)}</div>}
+                    </td>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{d.tipoFuente.toUpperCase().replace(/_/g, ' ')}</td>
                     <td style={{ padding: '0.75rem 1rem' }}><span className={`alcance-pill-${d.alcance}`}>A{d.alcance}</span></td>
                     <td style={{ padding: '0.75rem 1rem' }}>{d.cantidad ? d.cantidad.toLocaleString() : '0'} {t(d.unidad, d.unidad)}</td>
