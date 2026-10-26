@@ -111,6 +111,10 @@ export default function DatosActividadPage() {
   const [guardando, setGuardando] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  type SortField = 'empresa' | 'alcance' | 'fuente' | 'cantidad' | 'periodo' | 'emision' | 'factor';
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   const factor = form.tipoFuente ? FACTORES_HUELLACHILE[form.tipoFuente as keyof typeof FACTORES_HUELLACHILE] : null;
 
   const calcularRealtime = async (cantidad: string, tipoFuente: string) => {
@@ -222,6 +226,29 @@ export default function DatosActividadPage() {
     setTimeout(() => setSuccess(false), 3000);
   };
 
+  useEffect(() => {
+    if (showForm) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [showForm]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortField(null);
+        setSortDirection('asc');
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const datosFiltrados = datos.filter(d => {
     if (filterAlcance !== 'all' && d.alcance !== parseInt(filterAlcance)) return false;
     if (filterEmpresa !== 'all' && d.empresaId !== filterEmpresa) return false;
@@ -229,6 +256,38 @@ export default function DatosActividadPage() {
     
     if (filterFuenteEmision && filterFuenteEmision !== 'all' && d.categoria !== filterFuenteEmision) return false;
     return true;
+  });
+
+  const datosOrdenados = [...datosFiltrados].sort((a, b) => {
+    if (!sortField) return 0;
+    let valA: any;
+    let valB: any;
+    if (sortField === 'empresa') {
+      valA = getNombreEmpresa(a.empresaId).toLowerCase();
+      valB = getNombreEmpresa(b.empresaId).toLowerCase();
+    } else if (sortField === 'alcance') {
+      valA = a.alcance;
+      valB = b.alcance;
+    } else if (sortField === 'fuente') {
+      valA = (a.categoria || a.tipoFuente || '').toLowerCase();
+      valB = (b.categoria || b.tipoFuente || '').toLowerCase();
+    } else if (sortField === 'cantidad') {
+      valA = a.cantidad;
+      valB = b.cantidad;
+    } else if (sortField === 'periodo') {
+      valA = a.periodo || '';
+      valB = b.periodo || '';
+    } else if (sortField === 'emision') {
+      valA = a.emisionCalculada_tCO2e || 0;
+      valB = b.emisionCalculada_tCO2e || 0;
+    } else if (sortField === 'factor') {
+      valA = a.factorValor || 0;
+      valB = b.factorValor || 0;
+    }
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const sumatoriaFiltrada = datosFiltrados.reduce((s, d) => s + (d.emisionCalculada_tCO2e || 0), 0);
@@ -268,7 +327,7 @@ export default function DatosActividadPage() {
 
       {/* Modal Formulario */}
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(25,28,30,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(25,28,30,0.6)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{
             background: 'var(--surface)',
             borderRadius: '1.25rem',
@@ -277,6 +336,7 @@ export default function DatosActividadPage() {
             maxHeight: '90vh',
             overflowY: 'auto',
             padding: '2rem',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             animation: 'fadeIn 0.2s ease',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -612,18 +672,46 @@ export default function DatosActividadPage() {
           <table className="audit-table">
             <thead>
               <tr>
-                <th>{t('Empresa', 'Company')}</th>
-                <th>{t('Alcance', 'Scope')}</th>
-                <th>{t('Fuente', 'Source')}</th>
-                <th>{t('Cantidad', 'Quantity')}</th>
-                <th>{t('Período', 'Period')}</th>
-                <th>{t('Emisión (tCO₂e)', 'Emission (tCO₂e)')}</th>
-                <th>{t('Factor · Fuente', 'Factor · Source')}</th>
+                <th onClick={() => handleSort('empresa')} style={{ cursor: 'pointer', userSelect: 'none' }} title={t('Ordenar por Empresa', 'Sort by Company')}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Empresa', 'Company')} <span style={{ opacity: sortField === 'empresa' ? 1 : 0.4 }}>{sortField === 'empresa' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('alcance')} style={{ cursor: 'pointer', userSelect: 'none' }} title={t('Ordenar por Alcance', 'Sort by Scope')}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Alcance', 'Scope')} <span style={{ opacity: sortField === 'alcance' ? 1 : 0.4 }}>{sortField === 'alcance' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('fuente')} style={{ cursor: 'pointer', userSelect: 'none' }} title={t('Ordenar por Fuente', 'Sort by Source')}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Fuente', 'Source')} <span style={{ opacity: sortField === 'fuente' ? 1 : 0.4 }}>{sortField === 'fuente' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('cantidad')} style={{ cursor: 'pointer', userSelect: 'none' }} title={t('Ordenar por Cantidad', 'Sort by Quantity')}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Cantidad', 'Quantity')} <span style={{ opacity: sortField === 'cantidad' ? 1 : 0.4 }}>{sortField === 'cantidad' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('periodo')} style={{ cursor: 'pointer', userSelect: 'none' }} title={t('Ordenar por Período', 'Sort by Period')}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Período', 'Period')} <span style={{ opacity: sortField === 'periodo' ? 1 : 0.4 }}>{sortField === 'periodo' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('emision')} style={{ cursor: 'pointer', userSelect: 'none' }} title={t('Ordenar por Emisión', 'Sort by Emission')}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Emisión (tCO₂e)', 'Emission (tCO₂e)')} <span style={{ opacity: sortField === 'emision' ? 1 : 0.4 }}>{sortField === 'emision' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('factor')} style={{ cursor: 'pointer', userSelect: 'none' }} title={t('Ordenar por Factor', 'Sort by Factor')}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Factor · Fuente', 'Factor · Source')} <span style={{ opacity: sortField === 'factor' ? 1 : 0.4 }}>{sortField === 'factor' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
                 <th>{t('Trazabilidad', 'Traceability')}</th>
               </tr>
             </thead>
             <tbody>
-              {datosFiltrados.map(d => (
+              {datosOrdenados.map(d => (
                 <tr key={d.id}>
                   <td>
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.8125rem' }}>

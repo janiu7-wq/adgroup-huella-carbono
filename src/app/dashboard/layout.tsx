@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         display: 'flex',
         flexDirection: 'column',
       }}>
-        <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
         </div>
       </main>
