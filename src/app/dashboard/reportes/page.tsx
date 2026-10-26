@@ -62,6 +62,40 @@ export default function ReportesPage() {
 
   const empresa = empresas.find(e => e.id === empresaId) || empresas[0] || { razonSocial: 'ADGROUP Holding', instalaciones: [] };
   const datos = datosDB.filter(d => d.empresaId === empresaId && (!periodo || d.periodo?.startsWith(periodo)));
+
+  type SortFieldReportes = 'periodo' | 'fuente' | 'alcance' | 'cantidad' | 'factor' | 'emision';
+  const [sortField, setSortField] = useState<SortFieldReportes | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: SortFieldReportes) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') setSortDirection('desc');
+      else { setSortField(null); setSortDirection('asc'); }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const datosOrdenados = [...datos].sort((a, b) => {
+    if (!sortField) return 0;
+    let valA: any;
+    let valB: any;
+    if (sortField === 'periodo') { valA = a.periodo || ''; valB = b.periodo || ''; }
+    else if (sortField === 'fuente') { valA = a.tipoFuente.toLowerCase(); valB = b.tipoFuente.toLowerCase(); }
+    else if (sortField === 'alcance') { valA = a.alcance; valB = b.alcance; }
+    else if (sortField === 'cantidad') { valA = a.cantidad; valB = b.cantidad; }
+    else if (sortField === 'factor') { valA = a.factorValor; valB = b.factorValor; }
+    else if (sortField === 'emision') {
+      valA = a.emisionCalculada_tCO2e || 0;
+      valB = b.emisionCalculada_tCO2e || 0;
+    }
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const total = datos.reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
   const alcance1 = datos.filter(d => d.alcance === 1).reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
   const alcance2 = datos.filter(d => d.alcance === 2).reduce((s, d) => s + d.emisionCalculada_tCO2e, 0);
@@ -467,17 +501,41 @@ export default function ReportesPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
               <thead style={{ background: 'var(--surface-container-lowest)', position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Fecha / Periodo', 'Date / Period')}</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Cod / Fuente', 'Cod / Source')}</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Alcance', 'Scope')}</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('T. Actividad', 'Activity Type')}</th>
+                  <th onClick={() => handleSort('periodo')} style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)', cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {t('Fecha / Periodo', 'Date / Period')} <span style={{ opacity: sortField === 'periodo' ? 1 : 0.4 }}>{sortField === 'periodo' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('fuente')} style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)', cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {t('Cod / Fuente', 'Cod / Source')} <span style={{ opacity: sortField === 'fuente' ? 1 : 0.4 }}>{sortField === 'fuente' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('alcance')} style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)', cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {t('Alcance', 'Scope')} <span style={{ opacity: sortField === 'alcance' ? 1 : 0.4 }}>{sortField === 'alcance' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('cantidad')} style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)', cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {t('T. Actividad', 'Activity Type')} <span style={{ opacity: sortField === 'cantidad' ? 1 : 0.4 }}>{sortField === 'cantidad' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                    </div>
+                  </th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Resp / Trazabilidad', 'Owner / Traceability')}</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)' }}>{t('Factor Ref.', 'Ref Factor')}</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--primary)', fontWeight: 800 }}>tCO₂e</th>
+                  <th onClick={() => handleSort('factor')} style={{ padding: '0.75rem 1rem', textAlign: 'right', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--on-surface-variant)', cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                      {t('Factor Ref.', 'Ref Factor')} <span style={{ opacity: sortField === 'factor' ? 1 : 0.4 }}>{sortField === 'factor' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('emision')} style={{ padding: '0.75rem 1rem', textAlign: 'right', borderBottom: '2px solid var(--surface-container-high)', color: 'var(--primary)', fontWeight: 800, cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                      tCO₂e <span style={{ opacity: sortField === 'emision' ? 1 : 0.4 }}>{sortField === 'emision' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {datos.map((d, i) => (
+                {datosOrdenados.map((d, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--surface-container-low)' }}>
                     <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>
                       <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{d.periodo}</span>

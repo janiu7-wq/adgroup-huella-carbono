@@ -167,6 +167,40 @@ export default function MetasPage() {
     return true;
   });
 
+  type SortFieldMetas = 'estado' | 'meta' | 'alcance' | 'base' | 'brecha' | 'avance' | 'responsable';
+  const [sortField, setSortField] = useState<SortFieldMetas | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: SortFieldMetas) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') setSortDirection('desc');
+      else { setSortField(null); setSortDirection('asc'); }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const metasOrdenadas = [...metasFiltradas].sort((a, b) => {
+    if (!sortField) return 0;
+    let valA: any;
+    let valB: any;
+    if (sortField === 'estado') { valA = a.estado; valB = b.estado; }
+    else if (sortField === 'meta') { valA = a.nombre.toLowerCase(); valB = b.nombre.toLowerCase(); }
+    else if (sortField === 'alcance') { valA = a.alcances[0] || 0; valB = b.alcances[0] || 0; }
+    else if (sortField === 'base') { valA = a.emisionesBase; valB = b.emisionesBase; }
+    else if (sortField === 'brecha') { valA = a.reduccionObjetivo; valB = b.reduccionObjetivo; }
+    else if (sortField === 'avance') {
+      valA = a.avanceAcumulado / a.emisionesBase;
+      valB = b.avanceAcumulado / b.emisionesBase;
+    }
+    else if (sortField === 'responsable') { valA = a.responsable.toLowerCase(); valB = b.responsable.toLowerCase(); }
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const getStatusColor = (estado: EstadoMeta) => {
     switch(estado) {
       case 'verificada': return 'var(--primary)';
@@ -470,18 +504,46 @@ export default function MetasPage() {
           <table className="table-executive">
             <thead>
               <tr>
-                <th>{t('Estado', 'Status')}</th>
-                <th>{t('Meta / Empresa', 'Target / Company')}</th>
-                <th>{t('Alcance', 'Scope')}</th>
-                <th>{t('Base ➔ Obj', 'Base ➔ Target')}</th>
-                <th>{t('Brecha', 'Gap')}</th>
-                <th>{t('Avance vs Base', 'Progress vs Base')}</th>
-                <th>{t('Resp. / Aprob.', 'Owner / Approver')}</th>
+                <th onClick={() => handleSort('estado')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Estado', 'Status')} <span style={{ opacity: sortField === 'estado' ? 1 : 0.4 }}>{sortField === 'estado' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('meta')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Meta / Empresa', 'Target / Company')} <span style={{ opacity: sortField === 'meta' ? 1 : 0.4 }}>{sortField === 'meta' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('alcance')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Alcance', 'Scope')} <span style={{ opacity: sortField === 'alcance' ? 1 : 0.4 }}>{sortField === 'alcance' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('base')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Base ➔ Obj', 'Base ➔ Target')} <span style={{ opacity: sortField === 'base' ? 1 : 0.4 }}>{sortField === 'base' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('brecha')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Brecha', 'Gap')} <span style={{ opacity: sortField === 'brecha' ? 1 : 0.4 }}>{sortField === 'brecha' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('avance')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Avance vs Base', 'Progress vs Base')} <span style={{ opacity: sortField === 'avance' ? 1 : 0.4 }}>{sortField === 'avance' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('responsable')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Resp. / Aprob.', 'Owner / Approver')} <span style={{ opacity: sortField === 'responsable' ? 1 : 0.4 }}>{sortField === 'responsable' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
                 <th>{t('Trazabilidad / Hitos', 'Traceability / Milestones')}</th>
               </tr>
             </thead>
             <tbody>
-              {metasFiltradas.map(meta => {
+              {metasOrdenadas.map(meta => {
                 const baseStr = `${meta.emisionesBase.toLocaleString()} ${meta.unidad}`;
                 const objStr = `${(meta.emisionesBase - meta.reduccionObjetivo).toLocaleString()} ${meta.unidad}`;
                 const pctReduccion = ((meta.avanceAcumulado / meta.emisionesBase) * 100).toFixed(1);

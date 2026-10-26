@@ -17,11 +17,45 @@ export default function FactoresPage() {
   const [filtroAlcance, setFiltroAlcance] = useState<string>('todos');
   const [busqueda, setBusqueda] = useState<string>('');
 
+  type SortField = 'nombre' | 'alcance' | 'valor' | 'unidad' | 'gas' | 'gwp' | 'fuente';
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') setSortDirection('desc');
+      else { setSortField(null); setSortDirection('asc'); }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const factoresFiltrados = FACTORES_LIST.filter(f => {
     const cumpleAlcance = filtroAlcance === 'todos' || f.alcance.toString() === filtroAlcance;
     const cumpleBusqueda = f.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
                            f.gas.toLowerCase().includes(busqueda.toLowerCase());
     return cumpleAlcance && cumpleBusqueda;
+  });
+
+  const factoresOrdenados = [...factoresFiltrados].sort((a, b) => {
+    if (!sortField) return 0;
+    let valA: any;
+    let valB: any;
+    if (sortField === 'nombre') { valA = a.nombre.toLowerCase(); valB = b.nombre.toLowerCase(); }
+    else if (sortField === 'alcance') { valA = a.alcance; valB = b.alcance; }
+    else if (sortField === 'valor') { valA = a.valor; valB = b.valor; }
+    else if (sortField === 'unidad') { valA = a.unidad.toLowerCase(); valB = b.unidad.toLowerCase(); }
+    else if (sortField === 'gas') { valA = a.gas; valB = b.gas; }
+    else if (sortField === 'gwp') {
+      valA = GWP_AR6[a.gas as keyof typeof GWP_AR6] || 0;
+      valB = GWP_AR6[b.gas as keyof typeof GWP_AR6] || 0;
+    }
+    else if (sortField === 'fuente') { valA = a.fuente.toLowerCase(); valB = b.fuente.toLowerCase(); }
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
 
   return (
@@ -108,17 +142,45 @@ export default function FactoresPage() {
           <table className="audit-table">
             <thead>
               <tr>
-                <th>{t('Actividad', 'Activity')}</th>
-                <th>{t('Alcance', 'Scope')}</th>
-                <th>{t('Factor (valor)', 'Factor (value)')}</th>
-                <th>{t('Unidad', 'Unit')}</th>
-                <th>{t('Gas', 'Gas')}</th>
-                <th>GWP</th>
-                <th>{t('Fuente', 'Source')}</th>
+                <th onClick={() => handleSort('nombre')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Actividad', 'Activity')} <span style={{ opacity: sortField === 'nombre' ? 1 : 0.4 }}>{sortField === 'nombre' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('alcance')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Alcance', 'Scope')} <span style={{ opacity: sortField === 'alcance' ? 1 : 0.4 }}>{sortField === 'alcance' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('valor')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Factor (valor)', 'Factor (value)')} <span style={{ opacity: sortField === 'valor' ? 1 : 0.4 }}>{sortField === 'valor' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('unidad')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Unidad', 'Unit')} <span style={{ opacity: sortField === 'unidad' ? 1 : 0.4 }}>{sortField === 'unidad' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('gas')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Gas', 'Gas')} <span style={{ opacity: sortField === 'gas' ? 1 : 0.4 }}>{sortField === 'gas' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('gwp')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    GWP <span style={{ opacity: sortField === 'gwp' ? 1 : 0.4 }}>{sortField === 'gwp' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('fuente')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('Fuente', 'Source')} <span style={{ opacity: sortField === 'fuente' ? 1 : 0.4 }}>{sortField === 'fuente' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {factoresFiltrados.length > 0 ? factoresFiltrados.map(f => (
+              {factoresOrdenados.length > 0 ? factoresOrdenados.map(f => (
                 <tr key={f.id}>
                   <td style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.8125rem' }}>{f.nombre}</td>
                   <td><span className={`alcance-pill-${f.alcance}`}>A{f.alcance}</span></td>
