@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { DATOS_ACTIVIDAD_DEMO, EMPRESAS_DEMO } from '@/lib/demo-data';
@@ -116,10 +116,46 @@ export default function DatosActividadPage() {
   } | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [recalculando, setRecalculando] = useState(false);
+  const [mensajeAuditoria, setMensajeAuditoria] = useState<string | null>(null);
 
   type SortField = 'empresa' | 'alcance' | 'fuente' | 'cantidad' | 'periodo' | 'emision' | 'factor';
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const recalcularRegistrosInconsistentes = async () => {
+    if (!confirm(t('¿Desea escanear y recalcular automáticamente todas las emisiones inconsistentes en la base de datos Firestore?', 'Scan and automatically recalculate all inconsistent emissions in the Firestore database?'))) return;
+    setRecalculando(true);
+    setMensajeAuditoria(null);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'datos_actividad'));
+      let corregidos = 0;
+      for (const docSnap of querySnapshot.docs) {
+        const d = docSnap.data();
+        if (d.cantidad && d.factorValor) {
+          const calculoEsperado = parseFloat(((d.cantidad * d.factorValor) / 1000).toFixed(4));
+          const actual = d.emisionCalculada_tCO2e ?? 0;
+          if (Math.abs(actual - calculoEsperado) > 0.001) {
+            await updateDoc(doc(db, 'datos_actividad', docSnap.id), {
+              emisionCalculada_tCO2e: calculoEsperado,
+              emisionCalculada_kgCO2e: parseFloat((calculoEsperado * 1000).toFixed(2)),
+              updatedAt: new Date().toISOString(),
+              auditoriaRecalculo: 'Corregido por saneamiento determinista de GWP'
+            });
+            corregidos++;
+          }
+        }
+      }
+      setMensajeAuditoria(t(`Auditoría finalizada: Se corrigieron ${corregidos} registros inconsistentes.`, `Audit completed: ${corregidos} inconsistent records were corrected.`));
+      await fetchDatos();
+    } catch (err) {
+      console.error('Error durante el recálculo:', err);
+      alert(t('Ocurrió un error al recalcular los registros.', 'An error occurred while recalculating records.'));
+    } finally {
+      setRecalculando(false);
+      setTimeout(() => setMensajeAuditoria(null), 6000);
+    }
+  };
 
   const factor = form.tipoFuente ? FACTORES_HUELLACHILE[form.tipoFuente as keyof typeof FACTORES_HUELLACHILE] : null;
 
@@ -204,17 +240,24 @@ export default function DatosActividadPage() {
         }
       }
 
+      const cantidadNum = parseFloat(form.cantidad);
+      const factorSeleccionado = FACTORES_HUELLACHILE[form.tipoFuente as keyof typeof FACTORES_HUELLACHILE];
+      const factorValorFinal = resultadoRealtime?.factor ?? factorSeleccionado?.valor ?? 0;
+      const factorFuenteFinal = resultadoRealtime?.fuente ?? factorSeleccionado?.fuente ?? 'HuellaChile 2024';
+      const emisionFinal = parseFloat(((cantidadNum * factorValorFinal) / 1000).toFixed(4));
+
       const nuevoDato = {
         empresaId: form.empresaId,
         alcance: form.alcance,
         tipoFuente: form.tipoFuente,
         categoria: form.fuenteEmision,
-        cantidad: parseFloat(form.cantidad),
+        cantidad: cantidadNum,
         unidad: UNIDADES[form.tipoFuente] || 'und',
         periodo: form.periodo,
-        emisionCalculada_tCO2e: resultadoRealtime.emision,
-        factorValor: resultadoRealtime.factor,
-        factorFuente: resultadoRealtime.fuente,
+        emisionCalculada_tCO2e: emisionFinal,
+        emisionCalculada_kgCO2e: parseFloat((emisionFinal * 1000).toFixed(2)),
+        factorValor: factorValorFinal,
+        factorFuente: factorFuenteFinal,
         estado: 'ingresado',
         evidencias: evidenciasArray,
         createdAt: new Date().toISOString(),
@@ -325,11 +368,34 @@ export default function DatosActividadPage() {
             {t('Registro de fuentes de emisión por Alcance 1, 2 y 3 · GHG Protocol', 'Registration of emission sources by Scope 1, 2 and 3 · GHG Protocol')}
           </p>
         </div>
-        <button id="btn-nuevo-dato" onClick={() => setShowForm(true)} className="btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          {t('Agregar Fuente de Emisión', 'Add Emission Source')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={recalcularRegistrosInconsistentes}
+            disabled={recalculando}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: recalculando ? 'not-allowed' : 'pointer' }}
+            title={t('Escanea la base de datos y recalcula automáticamente los registros con emisiones inconsistentes', 'Scans the database and automatically recalculates records with inconsistent emissions')}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className={recalculando ? 'animate-spin' : ''}>
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            {recalculando ? t('Auditando...', 'Auditing...') : t('Auditar y Recalcular', 'Audit & Recalculate')}
+          </button>
+          <button id="btn-nuevo-dato" onClick={() => setShowForm(true)} className="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            {t('Agregar Fuente de Emisión', 'Add Emission Source')}
+          </button>
+        </div>
       </div>
+
+      {mensajeAuditoria && (
+        <div style={{ background: 'var(--surface-container-high)', borderLeft: '4px solid var(--primary)', borderRadius: '0.75rem', padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--on-surface)' }}>
+            {mensajeAuditoria}
+          </p>
+        </div>
+      )}
 
       {success && (
         <div style={{ background: 'var(--primary-fixed)', borderRadius: '0.75rem', padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>

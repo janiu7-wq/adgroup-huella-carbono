@@ -26,7 +26,7 @@ export const FACTORES_HUELLACHILE = {
   vuelo_corto_haul: { valor: 0.255, unidad: 'kgCO2e/pkm', gas: 'CO2', alcance: 3, fuente: 'GHG Protocol 2024' },
   vuelo_largo_haul: { valor: 0.195, unidad: 'kgCO2e/pkm', gas: 'CO2', alcance: 3, fuente: 'GHG Protocol 2024' },
   papel_blanco: { valor: 1.29, unidad: 'kgCO2e/kg', gas: 'CO2', alcance: 3, fuente: 'HuellaChile 2024' },
-  residuos_relleno: { valor: 0.521, unidad: 'kgCO2e/kg', gas: 'CH4', alcance: 3, fuente: 'HuellaChile 2024' },
+  residuos_relleno: { valor: 0.521, unidad: 'kgCO2e/kg', gas: 'CO2', alcance: 3, fuente: 'HuellaChile 2024' },
   agua_tratada: { valor: 0.344, unidad: 'kgCO2e/m3', gas: 'CO2', alcance: 3, fuente: 'HuellaChile 2024' },
 } as const;
 
@@ -90,7 +90,9 @@ export async function calcularEmision(input: InputActividad): Promise<ResultadoE
   }
 
   // 2. Obtener GWP AR6
-  const gwp = GWP_AR6[factor.gas as keyof typeof GWP_AR6] ?? 1;
+  // Si el factor proviene de HuellaChile o GHG Protocol y su unidad es kgCO2e, el factor ya incorpora GWP
+  const yaEsEquivalente = factor.fuente.includes('HuellaChile') || factor.fuente.includes('GHG Protocol') || factor.gas === 'CO2';
+  const gwp = yaEsEquivalente ? 1 : (GWP_AR6[factor.gas as keyof typeof GWP_AR6] ?? 1);
 
   // 3. Cálculo: CO₂e = cantidad × factor × GWP / 1000 (kg → t)
   const emision_kgCO2e = input.cantidad * factor.valor * gwp;
@@ -104,7 +106,9 @@ export async function calcularEmision(input: InputActividad): Promise<ResultadoE
     gwp_aplicado: gwp,
     alcance: factor.alcance,
     trazabilidad: {
-      formula: `${input.cantidad} × ${factor.valor} × GWP(${gwp}) / 1000 = ${emision_tCO2e} tCO₂e`,
+      formula: gwp === 1 
+        ? `${input.cantidad} × ${factor.valor} / 1000 = ${emision_tCO2e} tCO₂e` 
+        : `${input.cantidad} × ${factor.valor} × GWP(${gwp}) / 1000 = ${emision_tCO2e} tCO₂e`,
       inputs: { ...input, gwp, factor: factor.valor },
       timestamp: new Date().toISOString(),
     },
