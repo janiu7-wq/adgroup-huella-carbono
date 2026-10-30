@@ -1,8 +1,9 @@
 'use client';
 import { use, useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, updateDoc } from 'firebase/firestore';
 import { ref, deleteObject, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
+import { EMPRESAS_DEMO } from '@/lib/demo-data';
 import type { DatoActividad, Empresa } from '@/lib/types';
 import Link from 'next/link';
 
@@ -11,23 +12,44 @@ export default function DatoDetallePage({ params }: { params: Promise<{ id: stri
   
   const [dato, setDato] = useState<DatoActividad | null>(null);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
+  const [listaEmpresas, setListaEmpresas] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit Mode States
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<{cantidad: string, periodo: string, descripcion: string}>({ cantidad: '', periodo: '', descripcion: '' });
+  const [editForm, setEditForm] = useState<{
+    categoria: string;
+    empresaId: string;
+    cantidad: string;
+    periodo: string;
+    descripcion: string;
+  }>({ categoria: '', empresaId: '', cantidad: '', periodo: '', descripcion: '' });
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      try {
+        const empSnap = await getDocs(collection(db, 'empresas'));
+        const listEmp = empSnap.docs.map(d => ({ id: d.id, ...d.data() } as Empresa));
+        setListaEmpresas(listEmp.length > 0 ? listEmp : EMPRESAS_DEMO);
+      } catch {
+        setListaEmpresas(EMPRESAS_DEMO);
+      }
+
       const docRef = doc(db, 'datos_actividad', id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const d = { id: docSnap.id, ...docSnap.data() } as DatoActividad;
         setDato(d);
-        setEditForm({ cantidad: String(d.cantidad), periodo: d.periodo, descripcion: d.descripcion || '' });
+        setEditForm({
+          categoria: d.categoria || '',
+          empresaId: d.empresaId || '',
+          cantidad: String(d.cantidad),
+          periodo: d.periodo,
+          descripcion: d.descripcion || ''
+        });
         
         if (d.empresaId) {
           const empRef = doc(db, 'empresas', d.empresaId);
@@ -104,16 +126,22 @@ export default function DatoDetallePage({ params }: { params: Promise<{ id: stri
       }
 
       const updates = {
+        categoria: editForm.categoria,
+        empresaId: editForm.empresaId,
         cantidad: nuevaCantidad,
         periodo: editForm.periodo,
         descripcion: editForm.descripcion,
         emisionCalculada_tCO2e: nuevaEmision,
+        emisionCalculada_kgCO2e: parseFloat((nuevaEmision * 1000).toFixed(2)),
         evidencias: evidenciasArray,
         updatedAt: new Date().toISOString()
       };
 
       const docRef = doc(db, 'datos_actividad', dato.id);
       await updateDoc(docRef, updates);
+
+      const nuevaEmp = listaEmpresas.find(e => e.id === editForm.empresaId) || null;
+      if (nuevaEmp) setEmpresa(nuevaEmp);
 
       setDato({ ...dato, ...updates });
       setIsEditing(false);
@@ -173,6 +201,34 @@ export default function DatoDetallePage({ params }: { params: Promise<{ id: stri
 
       {isEditing ? (
         <form onSubmit={handleUpdate} className="card-elevated animate-fade-in" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', marginBottom: '6px' }}>Empresa / Ubicación *</label>
+              <select
+                className="input-field"
+                value={editForm.empresaId}
+                onChange={e => setEditForm({ ...editForm, empresaId: e.target.value })}
+                required
+              >
+                <option value="">Seleccionar empresa...</option>
+                {listaEmpresas.map(e => (
+                  <option key={e.id} value={e.id}>{e.razonSocial}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', marginBottom: '6px' }}>Fuente de Emisión (Equipo, Ubicación, Medidor) *</label>
+              <input
+                type="text"
+                className="input-field"
+                value={editForm.categoria}
+                onChange={e => setEditForm({ ...editForm, categoria: e.target.value })}
+                placeholder="Ej: Planta Quilicura, Oficina 901, Camión patente XCVFSD"
+                required
+              />
+            </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', marginBottom: '6px' }}>Cantidad ({dato.unidad})</label>
